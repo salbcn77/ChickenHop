@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Chicken Hop</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a120b">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+<!-- iOS "Add to Home Screen" -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Chicken Hop">
+
+<!-- Android / Chrome -->
+<meta name="mobile-web-app-capable" content="yes">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="hud">
+    <div id="distance">0 m</div>
+    <div id="timer" class="hidden">0:30</div>
+    <div id="best">Mejor: 0 m</div>
+  </div>
+
+  <div id="startScreen" class="overlay">
+    <div class="panel">
+      <div class="chickenLogo">🐔</div>
+      <h1>CHICKEN HOP</h1>
+      <p class="hint">Toca izquierda/derecha para saltar. ¡No te salgas del camino!</p>
+
+      <div id="modeToggle" class="modeToggle">
+        <button class="modeBtn active" data-mode="story">🌾 Historia</button>
+        <button class="modeBtn" data-mode="random">🔥 Difícil</button>
+      </div>
+      <p id="modeDesc" class="modeDesc">Camino clásico, dificultad progresiva.</p>
+
+      <div id="timeToggle" class="modeToggle">
+        <button class="modeBtn active" data-timemode="normal">♾️ Normal</button>
+        <button class="modeBtn" data-timemode="time">⏱️ Contrarreloj</button>
+      </div>
+      <div id="timeLimits" class="timeLimits hidden">
+        <button class="timeBtn active" data-time="30">0:30</button>
+        <button class="timeBtn" data-time="60">1:00</button>
+        <button class="timeBtn" data-time="120">2:00</button>
+        <button class="timeBtn" data-time="180">3:00</button>
+      </div>
+
+      <button id="startBtn" class="bigBtn">JUGAR</button>
+      <button id="viewLeaderboardBtn" class="linkBtn">🏆 Ver ranking</button>
+    </div>
+  </div>
+
+  <div id="gameOverScreen" class="overlay hidden">
+    <div class="panel">
+      <h2 id="gameOverTitle">¡BIEN JUGADO!</h2>
+      <div class="scoreLabel">TU DISTANCIA</div>
+      <div id="finalScore" class="scoreValue">0 m</div>
+      <div id="newRecord" class="newRecord hidden">¡Nuevo récord!</div>
+      <div id="submitScore" class="submitScore hidden">
+        <input id="playerName" class="nameInput" type="text" placeholder="Tu nombre" maxlength="20">
+        <button id="submitScoreBtn" class="shareBtn">🏆 Subir al ranking</button>
+      </div>
+      <button id="retryBtn" class="bigBtn">REINTENTAR</button>
+      <button id="shareBtn" class="shareBtn hidden">📤 Compartir</button>
+      <button id="menuBtn" class="linkBtn">Cambiar modo</button>
+    </div>
+  </div>
+
+  <div id="leaderboardScreen" class="overlay hidden">
+    <div class="panel">
+      <h2>🏆 TOP 10</h2>
+      <div id="leaderboardList" class="leaderboardList">
+        <p class="loadingText">Cargando...</p>
+      </div>
+      <button id="closeLeaderboardBtn" class="bigBtn">CERRAR</button>
+    </div>
+  </div>
+
+  <div id="tapZones">
+    <div id="zoneLeft" class="zone"></div>
+    <div id="zoneRight" class="zone"></div>
+  </div>
+
+  <script type="module" src="leaderboard.js"></script>
+  <script type="module" src="game.js"></script>
+</body>
+</html>
