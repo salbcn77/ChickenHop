@@ -43,10 +43,30 @@ async function submitScore({ name, score, mode, timeMode, timeLimit }) {
   });
 }
 
-async function fetchTop10() {
-  const q = query(scoresCol, orderBy("score", "desc"), limit(10));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => d.data());
+// Historia/Difícil each get their own board (endless runs only); every
+// Contrarreloj run — whichever path mode or time limit — lands in one
+// shared "timeattack" board, since that's the grouping that makes sense
+// to compare against friends.
+function categoryOf(mode, timeMode) {
+  return timeMode === "time" ? "timeattack" : mode;
 }
 
-window.ChickenLeaderboard = { submitScore, fetchTop10 };
+// Filtering by category client-side (instead of a Firestore `where` on a
+// stored field) avoids needing a composite index, and works for scores
+// written before this field existed — cheap enough at this game's scale.
+async function fetchTop(category, n = 10) {
+  const q = query(scoresCol, orderBy("score", "desc"), limit(200));
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => d.data())
+    .filter((s) => categoryOf(s.mode, s.timeMode) === category)
+    .slice(0, n);
+}
+
+async function qualifiesForTop(category, score, n = 10) {
+  const top = await fetchTop(category, n);
+  if (top.length < n) return true;
+  return score > top[top.length - 1].score;
+}
+
+window.ChickenLeaderboard = { submitScore, fetchTop, qualifiesForTop, categoryOf };

@@ -692,9 +692,10 @@
     }
   });
 
-  document.getElementById('viewLeaderboardBtn').addEventListener('click', async () => {
-    document.getElementById('startScreen').classList.add('hidden');
-    document.getElementById('leaderboardScreen').classList.remove('hidden');
+  async function loadLeaderboard(category) {
+    document.querySelectorAll('.lbCatBtn').forEach((b) => {
+      b.classList.toggle('active', b.dataset.category === category);
+    });
     const listEl = document.getElementById('leaderboardList');
     listEl.innerHTML = '<p class="loadingText">Cargando...</p>';
 
@@ -703,7 +704,7 @@
       return;
     }
     try {
-      const scores = await window.ChickenLeaderboard.fetchTop10();
+      const scores = await window.ChickenLeaderboard.fetchTop(category, 10);
       if (!scores.length) {
         listEl.innerHTML = '<p class="loadingText">Todavía no hay puntuaciones. ¡Sé el primero!</p>';
         return;
@@ -721,6 +722,19 @@
     } catch (e) {
       listEl.innerHTML = '<p class="loadingText">No se pudo cargar el ranking.</p>';
     }
+  }
+
+  document.querySelectorAll('.lbCatBtn').forEach((btn) => {
+    btn.addEventListener('click', () => loadLeaderboard(btn.dataset.category));
+  });
+
+  document.getElementById('viewLeaderboardBtn').addEventListener('click', () => {
+    document.getElementById('startScreen').classList.add('hidden');
+    document.getElementById('leaderboardScreen').classList.remove('hidden');
+    const defaultCategory = window.ChickenLeaderboard
+      ? window.ChickenLeaderboard.categoryOf(gameMode, timeMode)
+      : 'story';
+    loadLeaderboard(defaultCategory);
   });
 
   document.getElementById('closeLeaderboardBtn').addEventListener('click', () => {
@@ -764,23 +778,41 @@
     document.getElementById('finalScore').textContent = finalM + ' m';
     document.getElementById('gameOverTitle').textContent =
       endReason === 'timeup' ? '¡SE ACABÓ EL TIEMPO!' : '¡BIEN JUGADO!';
+
+    // Local personal best: your own device's history, always available.
     const key = bestKey();
-    const isRecord = finalM > getBest(key);
-    if (isRecord) setBest(key, finalM);
+    const isPersonalRecord = finalM > getBest(key);
+    if (isPersonalRecord) setBest(key, finalM);
     updateBestUI();
     updateTimerUI();
-    document.getElementById('newRecord').classList.toggle('hidden', !isRecord);
+    document.getElementById('newRecord').classList.toggle('hidden', !isPersonalRecord);
 
-    const submitBlock = document.getElementById('submitScore');
-    const submitBtn = document.getElementById('submitScoreBtn');
-    submitBlock.classList.toggle('hidden', !isRecord);
-    if (isRecord) {
-      document.getElementById('playerName').value = localStorage.getItem('chickenHopPlayerName') || '';
-      submitBtn.disabled = false;
-      submitBtn.textContent = '🏆 Subir al ranking';
-    }
+    // Global leaderboard: separate concern, checked against the actual
+    // database (would this score place in that category's top 10?) rather
+    // than against your local best, which can easily be out of sync with
+    // what's really in the shared board.
+    document.getElementById('submitScore').classList.add('hidden');
+    checkLeaderboardQualification(finalM, gameMode, timeMode);
 
     document.getElementById('gameOverScreen').classList.remove('hidden');
+  }
+
+  async function checkLeaderboardQualification(finalM, mode, tMode) {
+    if (!window.ChickenLeaderboard) return;
+    const category = window.ChickenLeaderboard.categoryOf(mode, tMode);
+    try {
+      const qualifies = await window.ChickenLeaderboard.qualifiesForTop(category, finalM, 10);
+      // The player may have already started a new run by the time this
+      // resolves — only reveal the prompt if we're still on that same run's
+      // game-over screen.
+      if (qualifies && state === 'dead' && Math.floor(distance) === finalM) {
+        const submitBtn = document.getElementById('submitScoreBtn');
+        document.getElementById('playerName').value = localStorage.getItem('chickenHopPlayerName') || '';
+        submitBtn.disabled = false;
+        submitBtn.textContent = '🏆 Subir al ranking';
+        document.getElementById('submitScore').classList.remove('hidden');
+      }
+    } catch (e) { /* leaderboard unreachable, just don't offer to submit */ }
   }
 
   // ================= Audio (tiny synth, no assets) =================

@@ -348,6 +348,15 @@ html, body {
 }
 
 /* ---------- Leaderboard ---------- */
+.lbCategoryToggle {
+  margin-bottom: 4px;
+}
+
+.lbCategoryToggle .modeBtn {
+  font-size: 12px;
+  padding: 9px 3px;
+}
+
 .leaderboardList {
   max-height: 50vh;
   overflow-y: auto;
