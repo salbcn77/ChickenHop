@@ -393,24 +393,18 @@
   document.getElementById('zoneRight').addEventListener('pointerdown', (e) => { e.preventDefault(); tryHop(1); }, { passive: false });
 
   // iOS Safari can still trigger zoom on fast alternating left/right taps
-  // even with touch-action:none. Two likely triggers, guarded separately:
+  // even with touch-action:none. Guarded in two ways:
   //
-  // 1) Pinch-zoom: tapping opposite screen halves quickly means a finger can
-  //    touch down before the previous one fully lifts, briefly producing two
-  //    simultaneous touch points — exactly what a pinch gesture looks like.
-  //    Block it at the earliest possible moment: touchstart/touchmove with
-  //    more than one active touch.
-  //
-  //    Scoped to the gameplay tap zones only (not `document`): a non-passive
-  //    touchmove listener forces the browser to wait for this JS callback on
-  //    every single touchmove before it can start scrolling, which is exactly
-  //    the kind of thing that makes an unrelated scroll (e.g. the leaderboard
-  //    list) feel laggy or "stuck". The tap zones are the only place this
-  //    particular bug (rapid opposite-side taps) actually happens.
-  const tapZonesEl = document.getElementById('tapZones');
-  const blockMultiTouch = (e) => { if (e.touches.length > 1) e.preventDefault(); };
-  tapZonesEl.addEventListener('touchstart', blockMultiTouch, { passive: false });
-  tapZonesEl.addEventListener('touchmove', blockMultiTouch, { passive: false });
+  // 1) Genuine two-finger pinch: caught by the CSS touch-action:none already
+  //    on the tap zones (which blocks native pinch-zoom/pan from starting
+  //    there at all) plus these legacy WebKit gesture events as a backstop.
+  //    An earlier version also cancelled touchstart/touchmove whenever two
+  //    touches were simultaneously active, to catch a left finger not fully
+  //    lifted before the right one lands — but that punished exactly the
+  //    rapid alternating taps this game requires: cancelling that touchstart
+  //    could suppress the second finger's tap from registering as a hop at
+  //    all, not just block the zoom. Gameplay responsiveness matters more
+  //    than that edge case, so it's gone.
   document.addEventListener('gesturestart', (e) => e.preventDefault());
   document.addEventListener('gesturechange', (e) => e.preventDefault());
 
