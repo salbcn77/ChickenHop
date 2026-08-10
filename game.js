@@ -423,6 +423,25 @@
   document.getElementById('tapZones').addEventListener('touchend', (e) => {
     e.preventDefault();
   }, { passive: false });
+
+  // 3) Same double-tap-to-zoom, but on ordinary <button> elements (JUGAR,
+  //    the scroll arrows, category tabs...). Those rely on the browser's own
+  //    'click' event, so they can't unconditionally swallow every touchend
+  //    the way #tapZones does (that would silently kill every tap, since
+  //    preventDefault() on touchend suppresses the synthetic click that
+  //    follows it). Instead, only swallow a touchend that lands within the
+  //    OS's double-tap window of the previous one on that same button — the
+  //    first tap's click still fires normally, only a genuine rapid second
+  //    tap (the actual zoom trigger) gets cancelled.
+  document.querySelectorAll('button').forEach((btn) => {
+    let lastTouchEnd = 0;
+    btn.addEventListener('touchend', (e) => {
+      const now = Date.now();
+      if (now - lastTouchEnd < 400) e.preventDefault();
+      lastTouchEnd = now;
+    }, { passive: false });
+  });
+
   window.addEventListener('keydown', (e) => {
     if (e.code === 'ArrowLeft' || e.code === 'KeyA') tryHop(-1);
     if (e.code === 'ArrowRight' || e.code === 'KeyD') tryHop(1);
