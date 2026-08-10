@@ -368,6 +368,24 @@ html, body {
   gap: 6px;
 }
 
+/* The ranking screen is the one panel with its own internal scroll region
+   (the list). Letting the outer .panel scroll too creates two nested
+   scrollable containers, which iOS Safari handles badly — a scroll gesture
+   leaves its momentum "stuck" for a few seconds before the next one is
+   recognized. So here the panel itself never scrolls (it's a fixed-height
+   flex column); only .leaderboardList does. */
+#leaderboardScreen .panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#leaderboardScreen .leaderboardList {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+}
+
 .loadingText {
   font-size: 14px !important;
   color: #8a7a68 !important;
