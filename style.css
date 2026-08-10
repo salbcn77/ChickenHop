@@ -436,6 +436,18 @@ html, body {
   box-shadow: 0 1px 0 #c98f10;
 }
 
+.lbScrollBtn:disabled {
+  background: #d8cdb8;
+  color: #a6987f;
+  box-shadow: 0 3px 0 #b6a988;
+  cursor: default;
+}
+
+.lbScrollBtn:disabled:active {
+  transform: none;
+  box-shadow: 0 3px 0 #b6a988;
+}
+
 .loadingText {
   font-size: 14px !important;
   color: #8a7a68 !important;

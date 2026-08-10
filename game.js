@@ -706,15 +706,18 @@
     });
     const listEl = document.getElementById('leaderboardList');
     listEl.innerHTML = '<p class="loadingText">Cargando...</p>';
+    listEl.scrollTop = 0;
 
     if (!window.ChickenLeaderboard) {
       listEl.innerHTML = '<p class="loadingText">Sin conexión al ranking.</p>';
+      updateLbScrollButtons();
       return;
     }
     try {
       const scores = await window.ChickenLeaderboard.fetchTop(category, 10);
       if (!scores.length) {
         listEl.innerHTML = '<p class="loadingText">Todavía no hay puntuaciones. ¡Sé el primero!</p>';
+        updateLbScrollButtons();
         return;
       }
       listEl.innerHTML = scores.map((s, i) => `
@@ -730,6 +733,24 @@
     } catch (e) {
       listEl.innerHTML = '<p class="loadingText">No se pudo cargar el ranking.</p>';
     }
+    updateLbScrollButtons();
+  }
+
+  // Clamp to the list's actual scrollable range instead of trusting the
+  // browser to clamp an out-of-range smooth-scroll request — asking it to
+  // scroll past the end repeatedly was what made the list glitch/vanish.
+  function scrollLeaderboardBy(delta) {
+    const el = document.getElementById('leaderboardList');
+    const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
+    const target = Math.max(0, Math.min(maxScroll, el.scrollTop + delta));
+    el.scrollTo({ top: target, behavior: 'smooth' });
+  }
+
+  function updateLbScrollButtons() {
+    const el = document.getElementById('leaderboardList');
+    const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
+    document.getElementById('lbScrollUp').disabled = el.scrollTop <= 0;
+    document.getElementById('lbScrollDown').disabled = el.scrollTop >= maxScroll - 1;
   }
 
   document.querySelectorAll('.lbCatBtn').forEach((btn) => {
@@ -750,12 +771,9 @@
     document.getElementById('startScreen').classList.remove('hidden');
   });
 
-  document.getElementById('lbScrollUp').addEventListener('click', () => {
-    document.getElementById('leaderboardList').scrollBy({ top: -160, behavior: 'smooth' });
-  });
-  document.getElementById('lbScrollDown').addEventListener('click', () => {
-    document.getElementById('leaderboardList').scrollBy({ top: 160, behavior: 'smooth' });
-  });
+  document.getElementById('lbScrollUp').addEventListener('click', () => scrollLeaderboardBy(-160));
+  document.getElementById('lbScrollDown').addEventListener('click', () => scrollLeaderboardBy(160));
+  document.getElementById('leaderboardList').addEventListener('scroll', updateLbScrollButtons);
 
   const MODE_DESCRIPTIONS = {
     story: 'Camino clásico, dificultad progresiva.',
