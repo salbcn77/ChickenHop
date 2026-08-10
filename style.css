@@ -380,10 +380,60 @@ html, body {
   overflow: hidden;
 }
 
+.leaderboardListWrap {
+  position: relative;
+}
+
+#leaderboardScreen .leaderboardListWrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+
 #leaderboardScreen .leaderboardList {
   flex: 1 1 auto;
   min-height: 0;
   max-height: none;
+  padding-right: 44px;
+}
+
+/* Explicit up/down buttons: scrolling by touch-drag can feel laggy or
+   unresponsive on some phones (iOS momentum scroll fighting with the
+   surrounding fixed-position UI). These sidestep that entirely — they just
+   nudge the list with scrollBy(), no gesture involved. */
+.lbScrollBtns {
+  position: absolute;
+  right: 2px;
+  top: 14px;
+  bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.lbScrollBtn {
+  pointer-events: auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #2b1d13;
+  background: #ffd23f;
+  color: #2b1d13;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #c98f10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.lbScrollBtn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #c98f10;
 }
 
 .loadingText {

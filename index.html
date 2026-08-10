@@ -86,8 +86,14 @@
         <button class="modeBtn lbCatBtn" data-category="random">🔥 Difícil</button>
         <button class="modeBtn lbCatBtn" data-category="timeattack">⏱️ Contrarreloj</button>
       </div>
-      <div id="leaderboardList" class="leaderboardList">
-        <p class="loadingText">Cargando...</p>
+      <div class="leaderboardListWrap">
+        <div id="leaderboardList" class="leaderboardList">
+          <p class="loadingText">Cargando...</p>
+        </div>
+        <div class="lbScrollBtns">
+          <button id="lbScrollUp" class="lbScrollBtn" aria-label="Subir">▲</button>
+          <button id="lbScrollDown" class="lbScrollBtn" aria-label="Bajar">▼</button>
+        </div>
       </div>
       <button id="closeLeaderboardBtn" class="bigBtn">CERRAR</button>
     </div>

@@ -400,9 +400,17 @@
   //    simultaneous touch points — exactly what a pinch gesture looks like.
   //    Block it at the earliest possible moment: touchstart/touchmove with
   //    more than one active touch.
+  //
+  //    Scoped to the gameplay tap zones only (not `document`): a non-passive
+  //    touchmove listener forces the browser to wait for this JS callback on
+  //    every single touchmove before it can start scrolling, which is exactly
+  //    the kind of thing that makes an unrelated scroll (e.g. the leaderboard
+  //    list) feel laggy or "stuck". The tap zones are the only place this
+  //    particular bug (rapid opposite-side taps) actually happens.
+  const tapZonesEl = document.getElementById('tapZones');
   const blockMultiTouch = (e) => { if (e.touches.length > 1) e.preventDefault(); };
-  document.addEventListener('touchstart', blockMultiTouch, { passive: false });
-  document.addEventListener('touchmove', blockMultiTouch, { passive: false });
+  tapZonesEl.addEventListener('touchstart', blockMultiTouch, { passive: false });
+  tapZonesEl.addEventListener('touchmove', blockMultiTouch, { passive: false });
   document.addEventListener('gesturestart', (e) => e.preventDefault());
   document.addEventListener('gesturechange', (e) => e.preventDefault());
 
@@ -740,6 +748,13 @@
   document.getElementById('closeLeaderboardBtn').addEventListener('click', () => {
     document.getElementById('leaderboardScreen').classList.add('hidden');
     document.getElementById('startScreen').classList.remove('hidden');
+  });
+
+  document.getElementById('lbScrollUp').addEventListener('click', () => {
+    document.getElementById('leaderboardList').scrollBy({ top: -160, behavior: 'smooth' });
+  });
+  document.getElementById('lbScrollDown').addEventListener('click', () => {
+    document.getElementById('leaderboardList').scrollBy({ top: 160, behavior: 'smooth' });
   });
 
   const MODE_DESCRIPTIONS = {
