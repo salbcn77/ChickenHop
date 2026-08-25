@@ -79,6 +79,15 @@
   let gameMode = 'story';
   const modeParams = () => MODE_PARAMS[gameMode];
 
+  // Jump length: an independent preference layered on top of whichever
+  // path/time mode is selected, so "more control" or "more challenge" is
+  // available no matter what else you're playing. Expressed as a multiplier
+  // on that mode's own hopSide, not a fixed value — this keeps Difícil
+  // reliably harder than Historia at every jump-length setting instead of
+  // flattening the difference.
+  const JUMP_MULTIPLIERS = { short: 0.75, medium: 1, long: 1.3 };
+  let jumpLength = 'medium';
+
   // ================= Path (procedural) =================
   const SEGMENT_LEN = 46;
   const MAX_DRIFT = 128;
@@ -325,7 +334,7 @@
     hopping = true;
     chicken.fromX = chicken.worldX;
     chicken.fromZ = chicken.worldZ;
-    chicken.toX = chicken.worldX + dir * modeParams().hopSide;
+    chicken.toX = chicken.worldX + dir * modeParams().hopSide * JUMP_MULTIPLIERS[jumpLength];
     chicken.toZ = chicken.worldZ + HOP_FORWARD;
     chicken.facing = dir;
     chicken.animT = 0;
@@ -710,6 +719,7 @@
         mode: gameMode,
         timeMode,
         timeLimit,
+        jumpLength,
       });
       btn.textContent = '✓ ¡Publicado!';
     } catch (e) {
@@ -743,7 +753,7 @@
           <span class="rank">${i + 1}</span>
           <span class="lbInfo">
             <span class="lbName">${escapeHtml(s.name)}</span>
-            <span class="lbMode">${escapeHtml(modeTextOf(s.mode, s.timeMode, s.timeLimit))}</span>
+            <span class="lbMode">${escapeHtml(modeTextOf(s.mode, s.timeMode, s.timeLimit))}${s.jumpLength ? ' · ' + escapeHtml(JUMP_LABELS[s.jumpLength] || s.jumpLength) : ''}</span>
           </span>
           <span class="lbScore">${Math.floor(s.score)} m</span>
         </div>
@@ -820,6 +830,20 @@
       timeLimit = Number(btn.dataset.time);
       document.querySelectorAll('.timeBtn').forEach((b) => b.classList.toggle('active', b === btn));
       updateBestUI();
+    });
+  });
+
+  const JUMP_DESCRIPTIONS = {
+    short: 'Saltos cortos: más control y precisión.',
+    medium: 'Equilibrado — el salto tal y como está pensado el juego.',
+    long: 'Saltos largos: más difícil de controlar.',
+  };
+  const JUMP_LABELS = { short: 'Corto', medium: 'Medio', long: 'Largo' };
+  document.querySelectorAll('.jumpBtn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      jumpLength = btn.dataset.jump;
+      document.querySelectorAll('.jumpBtn').forEach((b) => b.classList.toggle('active', b === btn));
+      document.getElementById('jumpDesc').textContent = JUMP_DESCRIPTIONS[jumpLength];
     });
   });
 

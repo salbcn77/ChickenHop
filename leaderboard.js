@@ -26,9 +26,11 @@ const scoresCol = collection(db, "scores");
 const VALID_MODES = ["story", "random"];
 const VALID_TIME_MODES = ["normal", "time"];
 const VALID_TIME_LIMITS = [0, 30, 60, 120, 180];
+const VALID_JUMP_LENGTHS = ["short", "medium", "long"];
 
-async function submitScore({ name, score, mode, timeMode, timeLimit }) {
+async function submitScore({ name, score, mode, timeMode, timeLimit, jumpLength }) {
   const cleanTimeLimit = timeMode === "time" ? timeLimit : 0;
+  const cleanJumpLength = VALID_JUMP_LENGTHS.includes(jumpLength) ? jumpLength : "medium";
   if (!VALID_MODES.includes(mode)) throw new Error("invalid mode");
   if (!VALID_TIME_MODES.includes(timeMode)) throw new Error("invalid timeMode");
   if (!VALID_TIME_LIMITS.includes(cleanTimeLimit)) throw new Error("invalid timeLimit");
@@ -39,6 +41,7 @@ async function submitScore({ name, score, mode, timeMode, timeLimit }) {
     mode,
     timeMode,
     timeLimit: cleanTimeLimit,
+    jumpLength: cleanJumpLength,
     createdAt: serverTimestamp(),
   });
 }

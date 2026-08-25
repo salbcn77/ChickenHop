@@ -1,0 +1,30 @@
+rules_version = '2';
+
+// Chicken Hop — global top-10 leaderboard.
+// No auth (this is a game shared among friends): anyone can read the
+// leaderboard and anyone can add a score, but entries can never be edited
+// or deleted once written, and each field is sanity-checked so the data
+// stored stays well-formed even without a server in front of it.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /scores/{scoreId} {
+      allow read: if true;
+
+      allow create: if request.resource.data.keys().hasOnly(
+                        ['name', 'score', 'mode', 'timeMode', 'timeLimit', 'jumpLength', 'createdAt']
+                      )
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() <= 20
+                    && request.resource.data.score is number
+                    && request.resource.data.score >= 0
+                    && request.resource.data.score <= 100000
+                    && request.resource.data.mode in ['story', 'random']
+                    && request.resource.data.timeMode in ['normal', 'time']
+                    && request.resource.data.timeLimit in [0, 30, 60, 120, 180]
+                    && request.resource.data.jumpLength in ['short', 'medium', 'long'];
+
+      allow update, delete: if false;
+    }
+  }
+}
