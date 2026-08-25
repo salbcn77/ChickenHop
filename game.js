@@ -57,6 +57,11 @@
       elbowChance: 0.14,
       elbowMul: 1.7,
       pinchChance: 0,
+      // A hop of 44 used to exactly equal the narrowest path's half-width,
+      // so a single sideways hop could span the *entire* width there with
+      // zero margin for error. Shortened for finer control; Difícil keeps
+      // the tighter, harder-to-control original.
+      hopSide: 34,
     },
     random: {
       startHalfWidth: 108,
@@ -68,6 +73,7 @@
       elbowChance: 0.22,
       elbowMul: 2.1,
       pinchChance: 0.16,
+      hopSide: 44,
     },
   };
   let gameMode = 'story';
@@ -244,7 +250,6 @@
   };
   const camera = { x: 0, z: 0 };
   const HOP_FORWARD = 30;
-  const HOP_SIDE = 44;
   const HOP_DURATION = 0.15;
   const HOP_HEIGHT = 15;
 
@@ -320,7 +325,7 @@
     hopping = true;
     chicken.fromX = chicken.worldX;
     chicken.fromZ = chicken.worldZ;
-    chicken.toX = chicken.worldX + dir * HOP_SIDE;
+    chicken.toX = chicken.worldX + dir * modeParams().hopSide;
     chicken.toZ = chicken.worldZ + HOP_FORWARD;
     chicken.facing = dir;
     chicken.animT = 0;
