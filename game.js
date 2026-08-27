@@ -189,30 +189,31 @@
           seed: rand(),
         });
       }
-      if (gameMode === 'story' && z > 150) {
-        const activeHearts = decorations.filter((d) => d.type === 'heart' && !d.collected).length;
-        if (activeHearts < MAX_EXTRA_LIVES && rand() < 0.12) {
-          // The chicken only ever lands exactly on multiples of HOP_FORWARD
-          // (every hop advances z by exactly that much, whichever direction
-          // you jump) — a heart placed at any other z could never actually
-          // be landed on, no matter how well you aim. Snap it to one of the
-          // landing points that falls within this segment.
-          const firstLanding = Math.ceil(prev.z / HOP_FORWARD) * HOP_FORWARD;
-          const landings = [];
-          for (let gz = firstLanding; gz <= z; gz += HOP_FORWARD) landings.push(gz);
-          if (landings.length) {
-            const dz = landings[Math.floor(rand() * landings.length)];
-            const cx = centerAt(dz);
-            const hwAt = halfWidthAt(dz);
-            const heartX = cx + (rand() * 2 - 1) * hwAt * 0.4;
-            decorations.push({
-              z: dz,
-              x: heartX,
-              type: 'heart',
-              seed: rand(),
-              collected: false,
-            });
-          }
+      // Hearts are placed one per "window" of distance rather than rolled
+      // per-segment — a per-segment chance let two spawn right next to each
+      // other by pure luck. Window 0 is [1000, 2000), window 1 is
+      // [3500, 4500), and it keeps going every HEART_WINDOW_SPACING after
+      // that, so a long run always has a chance at more later on. Exactly
+      // one random, reachable spot is chosen inside each window as soon as
+      // path generation has fully covered it.
+      if (gameMode === 'story') {
+        const winStart = HEART_WINDOW_START + nextHeartWindowIdx * HEART_WINDOW_SPACING;
+        const winEnd = winStart + HEART_WINDOW_WIDTH;
+        if (z >= winEnd) {
+          const firstLanding = Math.ceil(winStart / HOP_FORWARD) * HOP_FORWARD;
+          const lastLanding = Math.floor(winEnd / HOP_FORWARD) * HOP_FORWARD;
+          const steps = Math.max(0, Math.round((lastLanding - firstLanding) / HOP_FORWARD));
+          const dz = firstLanding + Math.floor(rand() * (steps + 1)) * HOP_FORWARD;
+          const cx = centerAt(dz);
+          const hwAt = halfWidthAt(dz);
+          decorations.push({
+            z: dz,
+            x: cx + (rand() * 2 - 1) * hwAt * 0.4,
+            type: 'heart',
+            seed: rand(),
+            collected: false,
+          });
+          nextHeartWindowIdx++;
         }
       }
     }
@@ -296,6 +297,11 @@
   let extraLives = 0;
   let damageFlash = 0; // 0..1, fades out after losing a life
 
+  const HEART_WINDOW_START = 1000; // first window: [1000, 2000)
+  const HEART_WINDOW_WIDTH = 1000;
+  const HEART_WINDOW_SPACING = 2500; // next window starts 2500 later: [3500, 4500), ...
+  let nextHeartWindowIdx = 0;
+
   let hopping = false;
   let pendingDir = 0;
   let hopCount = 0;
@@ -325,10 +331,35 @@
   let particles = [];
   let lastTime = performance.now();
 
+  // "Mejor" in the HUD shows the *global* leaderboard's best for the current
+  // mode, not just this device's — more meaningful to compare against.
+  // getBest()/setBest() (this device's own history) still drive the
+  // "¡Nuevo récord!" badge on the game-over screen, which is deliberately
+  // personal and works offline; only the HUD number changes here.
+  const globalBestCache = {};
+
   function updateBestUI() {
-    document.getElementById('best').textContent = `Mejor: ${Math.floor(getBest(bestKey()))} m`;
+    const key = bestKey();
+    const val = key in globalBestCache ? globalBestCache[key] : getBest(key);
+    document.getElementById('best').textContent = `Mejor: ${Math.floor(val)} m`;
   }
   updateBestUI();
+
+  async function refreshGlobalBest() {
+    if (!window.ChickenLeaderboard) return;
+    const key = bestKey();
+    const mode = gameMode, tMode = timeMode, tLimit = timeLimit;
+    const category = window.ChickenLeaderboard.categoryOf(mode, tMode);
+    try {
+      const top = await window.ChickenLeaderboard.fetchTop(category, 50);
+      const matching = top.filter((s) =>
+        s.mode === mode && s.timeMode === tMode && (tMode !== 'time' || s.timeLimit === tLimit)
+      );
+      globalBestCache[key] = matching.length ? Math.floor(matching[0].score) : 0;
+    } catch (e) { /* offline or unreachable — keep whatever was cached, if anything */ }
+    if (bestKey() === key) updateBestUI();
+  }
+  refreshGlobalBest();
 
   function formatTime(t) {
     const s = Math.max(0, Math.ceil(t));
@@ -369,7 +400,7 @@
     distance = 0; deathT = 0;
     remainingTime = timeLimit;
     endReason = 'fell';
-    extraLives = 0; damageFlash = 0;
+    extraLives = 0; damageFlash = 0; nextHeartWindowIdx = 0;
     particles = [];
     rand = mulberry32((Date.now() ^ 0x9e3779b9) & 0xffffffff);
     seedPath();
@@ -544,6 +575,8 @@
     document.getElementById('gameOverScreen').classList.add('hidden');
     updateTimerUI();
     updateLivesUI();
+    updateBestUI();
+    refreshGlobalBest();
   }
 
   document.getElementById('startBtn').addEventListener('click', beginGame);
@@ -801,6 +834,7 @@
         jumpLength,
       });
       btn.textContent = '✓ ¡Publicado!';
+      refreshGlobalBest();
     } catch (e) {
       btn.textContent = '⚠️ Error al enviar';
       btn.disabled = false;
@@ -892,6 +926,7 @@
       document.querySelectorAll('#modeToggle .modeBtn').forEach((b) => b.classList.toggle('active', b === btn));
       document.getElementById('modeDesc').textContent = MODE_DESCRIPTIONS[gameMode];
       updateBestUI();
+      refreshGlobalBest();
     });
   });
 
@@ -901,6 +936,7 @@
       document.querySelectorAll('#timeToggle .modeBtn').forEach((b) => b.classList.toggle('active', b === btn));
       document.getElementById('timeLimits').classList.toggle('hidden', timeMode !== 'time');
       updateBestUI();
+      refreshGlobalBest();
     });
   });
 
@@ -909,6 +945,7 @@
       timeLimit = Number(btn.dataset.time);
       document.querySelectorAll('.timeBtn').forEach((b) => b.classList.toggle('active', b === btn));
       updateBestUI();
+      refreshGlobalBest();
     });
   });
 

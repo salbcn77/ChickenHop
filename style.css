@@ -37,6 +37,12 @@ html, body {
   z-index: 5;
 }
 
+#hudMain {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 #distance {
   font-weight: 800;
   font-size: clamp(38px, 11vw, 58px);
@@ -51,19 +57,36 @@ html, body {
   transform: scale(1.18);
 }
 
+#hudSide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
 #best {
-  margin-top: 2px;
   font-weight: 700;
-  font-size: 15px;
+  font-size: 14px;
   color: #ffffffcc;
   background: rgba(0,0,0,0.28);
-  padding: 4px 14px;
+  padding: 4px 12px;
   border-radius: 20px;
+  white-space: nowrap;
+}
+
+#lives {
+  font-size: 15px;
+  line-height: 1;
+  letter-spacing: 2px;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.4));
+}
+
+#lives.hidden {
+  display: none;
 }
 
 #timer {
   margin-top: 4px;
-  margin-bottom: 4px;
   font-weight: 800;
   font-size: 22px;
   color: #ffffff;
@@ -79,19 +102,6 @@ html, body {
 }
 
 #timer.hidden {
-  display: none;
-}
-
-#lives {
-  margin-top: 2px;
-  margin-bottom: 2px;
-  font-size: 15px;
-  line-height: 1;
-  letter-spacing: 2px;
-  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.4));
-}
-
-#lives.hidden {
   display: none;
 }
 
