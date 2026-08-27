@@ -189,6 +189,21 @@
           seed: rand(),
         });
       }
+      if (gameMode === 'story' && z > 150) {
+        const activeHearts = decorations.filter((d) => d.type === 'heart' && !d.collected).length;
+        if (activeHearts < MAX_EXTRA_LIVES && rand() < 0.05) {
+          const dz = prev.z + rand() * SEGMENT_LEN;
+          const cx = centerAt(dz);
+          const hwAt = halfWidthAt(dz);
+          decorations.push({
+            z: dz,
+            x: cx + (rand() * 2 - 1) * hwAt * 0.55,
+            type: 'heart',
+            seed: rand(),
+            collected: false,
+          });
+        }
+      }
     }
     // garbage collect old data behind the camera (kept well beyond the
     // largest dynamic render-behind distance used in render(), so tall
@@ -262,6 +277,14 @@
   const HOP_DURATION = 0.15;
   const HOP_HEIGHT = 15;
 
+  // Extra lives (Historia mode only): hearts appear on the path as you play.
+  // Landing on one banks a life (up to MAX_EXTRA_LIVES); falling off the
+  // path with a life banked consumes one and respawns you in place instead
+  // of ending the run.
+  const MAX_EXTRA_LIVES = 2;
+  let extraLives = 0;
+  let damageFlash = 0; // 0..1, fades out after losing a life
+
   let hopping = false;
   let pendingDir = 0;
   let hopCount = 0;
@@ -314,6 +337,18 @@
     el.classList.toggle('urgent', remainingTime <= 10);
   }
 
+  function updateLivesUI() {
+    const el = document.getElementById('lives');
+    if (gameMode !== 'story' || state !== 'playing') {
+      el.classList.add('hidden');
+      return;
+    }
+    el.classList.remove('hidden');
+    let hearts = '';
+    for (let i = 0; i < MAX_EXTRA_LIVES; i++) hearts += i < extraLives ? '❤️' : '🤍';
+    el.textContent = hearts;
+  }
+
   function resetGame() {
     chicken.worldX = 0; chicken.worldZ = 0;
     chicken.fromX = 0; chicken.fromZ = 0; chicken.toX = 0; chicken.toZ = 0;
@@ -323,11 +358,13 @@
     distance = 0; deathT = 0;
     remainingTime = timeLimit;
     endReason = 'fell';
+    extraLives = 0; damageFlash = 0;
     particles = [];
     rand = mulberry32((Date.now() ^ 0x9e3779b9) & 0xffffffff);
     seedPath();
     updateDistanceUI(true);
     updateTimerUI();
+    updateLivesUI();
   }
 
   function startHop(dir) {
@@ -360,11 +397,41 @@
 
   function die() {
     if (!chicken.alive) return;
+    if (gameMode === 'story' && extraLives > 0) {
+      respawnWithLostLife();
+      return;
+    }
     chicken.alive = false;
     deathT = 0;
     endReason = 'fell';
     beep(160, 0.25, 0.08);
     navigator.vibrate && navigator.vibrate(60);
+  }
+
+  // Falling off the path with a banked life: snap back to the safe center
+  // of the path at the same point instead of ending the run.
+  function respawnWithLostLife() {
+    extraLives--;
+    updateLivesUI();
+    chicken.worldX = centerAt(chicken.worldZ);
+    spawnDust(chicken.worldX, chicken.worldZ);
+    damageFlash = 0.5;
+    beep(220, 0.2, 0.07);
+    navigator.vibrate && navigator.vibrate([30, 40, 30]);
+  }
+
+  function checkHeartPickup() {
+    for (const d of decorations) {
+      if (d.type !== 'heart' || d.collected) continue;
+      const dx = d.x - chicken.worldX;
+      const dz = d.z - chicken.worldZ;
+      if (dx * dx + dz * dz < 14 * 14) {
+        d.collected = true;
+        extraLives = Math.min(MAX_EXTRA_LIVES, extraLives + 1);
+        updateLivesUI();
+        beep(760, 0.1, 0.05);
+      }
+    }
   }
 
   function spawnDust(x, z) {
@@ -465,6 +532,7 @@
     document.getElementById('startScreen').classList.add('hidden');
     document.getElementById('gameOverScreen').classList.add('hidden');
     updateTimerUI();
+    updateLivesUI();
   }
 
   document.getElementById('startBtn').addEventListener('click', beginGame);
@@ -860,6 +928,7 @@
     if (isPersonalRecord) setBest(key, finalM);
     updateBestUI();
     updateTimerUI();
+    updateLivesUI();
     document.getElementById('newRecord').classList.toggle('hidden', !isPersonalRecord);
 
     // Global leaderboard: separate concern, checked against the actual
@@ -957,6 +1026,7 @@
           hopping = false;
           spawnDust(chicken.worldX, chicken.worldZ);
           checkAlive();
+          if (chicken.alive && gameMode === 'story') checkHeartPickup();
           if (chicken.alive && pendingDir !== 0) {
             const d = pendingDir; pendingDir = 0; startHop(d);
           } else {
@@ -971,6 +1041,7 @@
       distance = Math.max(distance, chicken.worldZ);
       updateDistanceUI(false);
       extendPathTo(chicken.worldZ + 900);
+      if (damageFlash > 0) damageFlash = Math.max(0, damageFlash - dt * 2);
 
       const camSmooth = 1 - Math.pow(0.001, dt);
       camera.x += (chicken.worldX - camera.x) * camSmooth;
@@ -1050,6 +1121,23 @@
     ctx.setLineDash([]);
   }
 
+  function drawHeartShape(cx, cy, size) {
+    const x = cx, y = cy - size * 0.6;
+    const top = size * 0.3;
+    ctx.beginPath();
+    ctx.moveTo(x, y + top);
+    ctx.bezierCurveTo(x, y, x - size / 2, y, x - size / 2, y + top);
+    ctx.bezierCurveTo(x - size / 2, y + (size + top) / 2, x, y + (size + top) / 2, x, y + size);
+    ctx.bezierCurveTo(x, y + (size + top) / 2, x + size / 2, y + (size + top) / 2, x + size / 2, y + top);
+    ctx.bezierCurveTo(x + size / 2, y, x, y, x, y + top);
+    ctx.closePath();
+    ctx.fillStyle = '#e8432c';
+    ctx.fill();
+    ctx.lineWidth = Math.max(1, size * 0.14);
+    ctx.strokeStyle = '#231a12';
+    ctx.stroke();
+  }
+
   function drawDecorations(behind, ahead) {
     const theme = themeAt(camera.z);
     const s = scaleFactor();
@@ -1080,6 +1168,9 @@
         ctx.arc(p.sx, p.sy, r * 0.4, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
+      } else if (d.type === 'heart' && !d.collected) {
+        const bob = Math.sin(performance.now() / 260 + d.seed * 10) * 3 * s;
+        drawHeartShape(p.sx, p.sy + bob, 9 * s);
       }
     }
   }
@@ -1250,6 +1341,11 @@
     drawDecorations(behind, ahead);
     drawParticles();
     drawChicken();
+
+    if (damageFlash > 0) {
+      ctx.fillStyle = `rgba(200, 30, 30, ${damageFlash * 0.5})`;
+      ctx.fillRect(0, 0, W, H);
+    }
   }
 
   // ================= Main loop =================
