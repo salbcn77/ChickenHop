@@ -407,6 +407,9 @@
     updateDistanceUI(true);
     updateTimerUI();
     updateLivesUI();
+    clearTimeout(savedMsgTimeout);
+    document.getElementById('savedMsg').classList.remove('show');
+    document.getElementById('savedMsg').classList.add('hidden');
   }
 
   function startHop(dir) {
@@ -460,6 +463,21 @@
     damageFlash = 0.5;
     beep(220, 0.2, 0.07);
     navigator.vibrate && navigator.vibrate([30, 40, 30]);
+    showSavedMessage();
+  }
+
+  let savedMsgTimeout = null;
+  function showSavedMessage() {
+    const el = document.getElementById('savedMsg');
+    clearTimeout(savedMsgTimeout);
+    el.classList.remove('hidden');
+    el.classList.remove('show');
+    void el.offsetWidth; // restart the fade-in transition even if already showing
+    el.classList.add('show');
+    savedMsgTimeout = setTimeout(() => {
+      el.classList.remove('show');
+      savedMsgTimeout = setTimeout(() => el.classList.add('hidden'), 300);
+    }, 2000);
   }
 
   function checkHeartPickup() {
