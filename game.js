@@ -191,17 +191,28 @@
       }
       if (gameMode === 'story' && z > 150) {
         const activeHearts = decorations.filter((d) => d.type === 'heart' && !d.collected).length;
-        if (activeHearts < MAX_EXTRA_LIVES && rand() < 0.05) {
-          const dz = prev.z + rand() * SEGMENT_LEN;
-          const cx = centerAt(dz);
-          const hwAt = halfWidthAt(dz);
-          decorations.push({
-            z: dz,
-            x: cx + (rand() * 2 - 1) * hwAt * 0.55,
-            type: 'heart',
-            seed: rand(),
-            collected: false,
-          });
+        if (activeHearts < MAX_EXTRA_LIVES && rand() < 0.12) {
+          // The chicken only ever lands exactly on multiples of HOP_FORWARD
+          // (every hop advances z by exactly that much, whichever direction
+          // you jump) — a heart placed at any other z could never actually
+          // be landed on, no matter how well you aim. Snap it to one of the
+          // landing points that falls within this segment.
+          const firstLanding = Math.ceil(prev.z / HOP_FORWARD) * HOP_FORWARD;
+          const landings = [];
+          for (let gz = firstLanding; gz <= z; gz += HOP_FORWARD) landings.push(gz);
+          if (landings.length) {
+            const dz = landings[Math.floor(rand() * landings.length)];
+            const cx = centerAt(dz);
+            const hwAt = halfWidthAt(dz);
+            const heartX = cx + (rand() * 2 - 1) * hwAt * 0.4;
+            decorations.push({
+              z: dz,
+              x: heartX,
+              type: 'heart',
+              seed: rand(),
+              collected: false,
+            });
+          }
         }
       }
     }
@@ -425,7 +436,7 @@
       if (d.type !== 'heart' || d.collected) continue;
       const dx = d.x - chicken.worldX;
       const dz = d.z - chicken.worldZ;
-      if (dx * dx + dz * dz < 14 * 14) {
+      if (dx * dx + dz * dz < 18 * 18) {
         d.collected = true;
         extraLives = Math.min(MAX_EXTRA_LIVES, extraLives + 1);
         updateLivesUI();
@@ -1170,7 +1181,7 @@
         ctx.globalAlpha = 1;
       } else if (d.type === 'heart' && !d.collected) {
         const bob = Math.sin(performance.now() / 260 + d.seed * 10) * 3 * s;
-        drawHeartShape(p.sx, p.sy + bob, 9 * s);
+        drawHeartShape(p.sx, p.sy + bob, 17 * s);
       }
     }
   }
